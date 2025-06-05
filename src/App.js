@@ -1,50 +1,64 @@
-import React, { useState } from 'react';
-import GoalCard from './GoalCard';
+import React, { useState, useEffect } from 'react';
+import AddTaskForm from './AddTaskForm';
+import TaskList from './TaskList';
 
 function App() {
-  const [goal, setGoal] = useState('');
-  const [goals, setGoals] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('mytasks');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const addGoal = () => {
-    if (goal.trim() !== '') {
-      setGoals([...goals, { text: goal, completed: false }]);
-      setGoal('');
-    }
+  const [darkMode, setDarkMode] = useState(false);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('mytasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  const addTask = (task) => setTasks([...tasks, task]);
+
+  const toggleComplete = (id) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   };
 
-  const toggleComplete = (index) => {
-    const updated = [...goals];
-    updated[index].completed = !updated[index].completed;
-    setGoals(updated);
+  const deleteTask = (id) => {
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
-  const deleteGoal = (index) => {
-    setGoals(goals.filter((_, i) => i !== index));
-  };
+  const filteredTasks = tasks.filter(t =>
+    t.text.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.completed).length;
 
   return (
-    <div className="app-container">
-      <h1>🌟 Daily Goals Tracker</h1>
-      <div className="input-container">
-        <input 
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          placeholder="Enter your goal..."
-        />
-        <button onClick={addGoal}>Add Goal</button>
+    <div className={darkMode ? 'app dark' : 'app'}>
+      <h1>🌟 MyTasks+</h1>
+      <button onClick={() => setDarkMode(!darkMode)}>
+        {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+      </button>
+
+      <input
+        type="text"
+        placeholder="🔍 Search task..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      <AddTaskForm addTask={addTask} />
+      
+      <div className="stats">
+        <p>Total: {total}</p>
+        <p>Completed: {completed}</p>
+        <p>Pending: {total - completed}</p>
       </div>
 
-      <div className="goals-list">
-        {goals.map((g, index) => (
-          <GoalCard
-            key={index}
-            text={g.text}
-            completed={g.completed}
-            onComplete={() => toggleComplete(index)}
-            onDelete={() => deleteGoal(index)}
-          />
-        ))}
-      </div>
+      <TaskList
+        tasks={filteredTasks}
+        toggleComplete={toggleComplete}
+        deleteTask={deleteTask}
+      />
     </div>
   );
 }
